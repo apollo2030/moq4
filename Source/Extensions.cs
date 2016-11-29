@@ -53,87 +53,87 @@ using Moq.Properties;
 
 namespace Moq
 {
-    internal static class Extensions
-    {
-        private static readonly FieldInfo remoteStackTraceString = typeof(Exception).GetField("_remoteStackTraceString",
-            BindingFlags.Instance | BindingFlags.NonPublic);
+	internal static class Extensions
+	{
+		private static readonly FieldInfo remoteStackTraceString = typeof(Exception).GetField("_remoteStackTraceString",
+			BindingFlags.Instance | BindingFlags.NonPublic);
 
-        public static TAttribute GetCustomAttribute<TAttribute>(this ICustomAttributeProvider source, bool inherit)
-            where TAttribute : Attribute
-        {
-            object[] attrs = source.GetCustomAttributes(typeof(TAttribute), inherit);
+		public static TAttribute GetCustomAttribute<TAttribute>(this ICustomAttributeProvider source, bool inherit)
+			where TAttribute : Attribute
+		{
+			object[] attrs = source.GetCustomAttributes(typeof(TAttribute), inherit);
 
-            if (attrs.Length == 0)
-            {
-                return default(TAttribute);
-            }
-            else
-            {
-                return (TAttribute)attrs[0];
-            }
-        }
+			if (attrs.Length == 0)
+			{
+				return default(TAttribute);
+			}
+			else
+			{
+				return (TAttribute)attrs[0];
+			}
+		}
 
-        public static string Format(this ICallContext invocation)
-        {
-            if (invocation.Method.IsPropertyGetter())
-            {
-                return invocation.Method.DeclaringType.Name + "." + invocation.Method.Name.Substring(4);
-            }
+		public static string Format(this ICallContext invocation)
+		{
+			if (invocation.Method.IsPropertyGetter())
+			{
+				return invocation.Method.DeclaringType.Name + "." + invocation.Method.Name.Substring(4);
+			}
 
-            if (invocation.Method.IsPropertySetter())
-            {
-                return invocation.Method.DeclaringType.Name + "." +
-                       invocation.Method.Name.Substring(4) + " = " + GetValue(invocation.Arguments.First());
-            }
+			if (invocation.Method.IsPropertySetter())
+			{
+				return invocation.Method.DeclaringType.Name + "." +
+					   invocation.Method.Name.Substring(4) + " = " + GetValue(invocation.Arguments.First());
+			}
 
-            var genericParameters = invocation.Method.IsGenericMethod
-                                        ? "<" + string.Join(", ", invocation.Method.GetGenericArguments().Select(t => t.Name).ToArray()) + ">"
-                                        : "";
+			var genericParameters = invocation.Method.IsGenericMethod
+										? "<" + string.Join(", ", invocation.Method.GetGenericArguments().Select(t => t.Name).ToArray()) + ">"
+										: "";
 
-            return invocation.Method.DeclaringType.Name + "." + invocation.Method.Name + genericParameters + "(" +
-                   string.Join(", ", invocation.Arguments.Select(a => GetValue(a)).ToArray()) + ")";
-        }
+			return invocation.Method.DeclaringType.Name + "." + invocation.Method.Name + genericParameters + "(" +
+				   string.Join(", ", invocation.Arguments.Select(a => GetValue(a)).ToArray()) + ")";
+		}
 
-        public static string GetValue(object value)
-        {
-            if (value == null)
-            {
-                return "null";
-            }
+		public static string GetValue(object value)
+		{
+			if (value == null)
+			{
+				return "null";
+			}
 
-            var typedValue = value as string;
-            if (typedValue != null)
-            {
-                return "\"" + typedValue + "\"";
-            }
-            if (value is IEnumerable)
-            {
-                return "[" + string.Join(", ", ((IEnumerable)value).OfType<object>().Select(GetValue)) + "]";
-            }
+			var typedValue = value as string;
+			if (typedValue != null)
+			{
+				return "\"" + typedValue + "\"";
+			}
+			if (value is IEnumerable)
+			{
+				return "[" + string.Join(", ", ((IEnumerable)value).OfType<object>().Select(GetValue)) + "]";
+			}
 
-            if (value.GetType().IsValueType) return value.ToString();
+			if (value.GetType().IsValueType) return value.ToString();
 
-            var propertyInfos = value.GetType().GetProperties();
-            var valueString = value.GetType().Name + "{" + Environment.NewLine;
+			var propertyInfos = value.GetType().GetProperties();
+			var valueString = value.GetType().Name + "{" + Environment.NewLine;
 
-            foreach (var info in propertyInfos)
-            {
-                var val = info.GetValue(value, null) ?? "null";
-                valueString += info.Name + ": " + GetValue(val) + "," + Environment.NewLine;
-            }
-            valueString += "}";
+			foreach (var info in propertyInfos)
+			{
+				var val = info.GetValue(value, null) ?? "null";
+				valueString += info.Name + ": " + GetValue(val) + "," + Environment.NewLine;
+			}
+			valueString += "}";
 
-            return valueString;
-        }
+			return valueString;
+		}
 
-        public static object InvokePreserveStack(this Delegate del, params object[] args)
-        {
-            try
-            {
-                return del.DynamicInvoke(args);
-            }
-            catch (TargetInvocationException ex)
-            {
+		public static object InvokePreserveStack(this Delegate del, params object[] args)
+		{
+			try
+			{
+				return del.DynamicInvoke(args);
+			}
+			catch (TargetInvocationException ex)
+			{
 #if SILVERLIGHT
 	/* The test listed below fails when we call the setValue in silverlight...
 				 * 
@@ -149,200 +149,200 @@ namespace Moq
 				 * at System.Reflection.RtFieldInfo.PerformVisibilityCheckOnField(IntPtr field, Object target, IntPtr declaringType, FieldAttributes attr, UInt32 invocationFlags) at System.Reflection.RtFieldInfo.InternalSetValue(Object obj, Object value, BindingFlags invokeAttr, Binder binder, CultureInfo culture, Boolean doVisibilityCheck, Boolean doCheckConsistency) at System.Reflection.RtFieldInfo.InternalSetValue(Object obj, Object value, BindingFlags invokeAttr, Binder binder, CultureInfo culture, Boolean doVisibilityCheck) at System.Reflection.RtFieldInfo.SetValue(Object obj, Object value, BindingFlags invokeAttr, Binder binder, CultureInfo culture) at System.Reflection.FieldInfo.SetValue(Object obj, Object value) at Moq.Extensions.InvokePreserveStack(Delegate del, Object[] args) at Moq.MockedEvent.DoRaise(EventArgs args) at Moq.MockedEvent`1.Raise(TEventArgs args) at Moq.Tests.MockedEventsFixture.<>c__DisplayClass16.<ShouldPreserveStackTraceWhenRaisingEvent>b__14() at Xunit.Record.Exception(ThrowsDelegate code)
 				 */
 #else
-                remoteStackTraceString.SetValue(ex.InnerException, ex.InnerException.StackTrace);
-                ex.InnerException.SetStackTrace(ex.InnerException.StackTrace);
+				remoteStackTraceString.SetValue(ex.InnerException, ex.InnerException.StackTrace);
+				ex.InnerException.SetStackTrace(ex.InnerException.StackTrace);
 #endif
-                throw ex.InnerException;
-            }
-        }
+				throw ex.InnerException;
+			}
+		}
 
-        public static void SetStackTrace(this Exception exception, string stackTrace)
-        {
-            remoteStackTraceString.SetValue(exception, stackTrace);
-        }
+		public static void SetStackTrace(this Exception exception, string stackTrace)
+		{
+			remoteStackTraceString.SetValue(exception, stackTrace);
+		}
 
-        /// <summary>
-        /// Tests if a type is a delegate type (subclasses <see cref="Delegate" />).
-        /// </summary>
-        public static bool IsDelegate(this Type t)
-        {
-            return t.IsSubclassOf(typeof(Delegate));
-        }
+		/// <summary>
+		/// Tests if a type is a delegate type (subclasses <see cref="Delegate" />).
+		/// </summary>
+		public static bool IsDelegate(this Type t)
+		{
+			return t.IsSubclassOf(typeof(Delegate));
+		}
 
-        public static void ThrowIfNotMockeable(this Type typeToMock)
-        {
-            if (!IsMockeable(typeToMock))
-                throw new NotSupportedException(Properties.Resources.InvalidMockClass);
-        }
+		public static void ThrowIfNotMockeable(this Type typeToMock)
+		{
+			if (!IsMockeable(typeToMock))
+				throw new NotSupportedException(Properties.Resources.InvalidMockClass);
+		}
 
-        public static void ThrowIfNotMockeable(this MemberExpression memberAccess)
-        {
-            if (memberAccess.Member is FieldInfo)
-                throw new NotSupportedException(string.Format(
-                    CultureInfo.CurrentCulture,
-                    Resources.FieldsNotSupported,
-                    memberAccess.ToStringFixed()));
-        }
+		public static void ThrowIfNotMockeable(this MemberExpression memberAccess)
+		{
+			if (memberAccess.Member is FieldInfo)
+				throw new NotSupportedException(string.Format(
+					CultureInfo.CurrentCulture,
+					Resources.FieldsNotSupported,
+					memberAccess.ToStringFixed()));
+		}
 
-        public static void ThrowIfNoGetter(this PropertyInfo property)
-        {
-            if (property.GetGetMethod(true) == null)
-                throw new ArgumentException(string.Format(
-                    CultureInfo.CurrentCulture,
-                    Resources.PropertyGetNotFound,
-                    property.DeclaringType.Name, property.Name));
-        }
+		public static void ThrowIfNoGetter(this PropertyInfo property)
+		{
+			if (property.GetGetMethod(true) == null)
+				throw new ArgumentException(string.Format(
+					CultureInfo.CurrentCulture,
+					Resources.PropertyGetNotFound,
+					property.DeclaringType.Name, property.Name));
+		}
 
-        public static void ThrowIfNoSetter(this PropertyInfo property)
-        {
-            if (property.GetSetMethod(true) == null)
-                throw new ArgumentException(string.Format(
-                    CultureInfo.CurrentCulture,
-                    Resources.PropertySetNotFound,
-                    property.DeclaringType.Name, property.Name));
-        }
+		public static void ThrowIfNoSetter(this PropertyInfo property)
+		{
+			if (property.GetSetMethod(true) == null)
+				throw new ArgumentException(string.Format(
+					CultureInfo.CurrentCulture,
+					Resources.PropertySetNotFound,
+					property.DeclaringType.Name, property.Name));
+		}
 
-        public static bool IsMockeable(this Type typeToMock)
-        {
-            // A value type does not match any of these three 
-            // condition and therefore returns false.
-            return typeToMock.IsInterface || typeToMock.IsAbstract || typeToMock.IsDelegate() || (typeToMock.IsClass && !typeToMock.IsSealed);
-        }
+		public static bool IsMockeable(this Type typeToMock)
+		{
+			// A value type does not match any of these three 
+			// condition and therefore returns false.
+			return typeToMock.IsInterface || typeToMock.IsAbstract || typeToMock.IsDelegate() || (typeToMock.IsClass && !typeToMock.IsSealed);
+		}
 
-        public static bool IsSerializableMockable(this Type typeToMock)
-        {
-            return typeToMock.ContainsDeserializationConstructor() && typeToMock.IsGetObjectDataVirtual();
-        }
+		public static bool IsSerializableMockable(this Type typeToMock)
+		{
+			return typeToMock.ContainsDeserializationConstructor() && typeToMock.IsGetObjectDataVirtual();
+		}
 
-        private static bool IsGetObjectDataVirtual(this Type typeToMock)
-        {
-            var getObjectDataMethod = typeToMock.GetInterfaceMap(typeof(ISerializable)).TargetMethods[0];
-            return !getObjectDataMethod.IsPrivate && getObjectDataMethod.IsVirtual && !getObjectDataMethod.IsFinal;
-        }
+		private static bool IsGetObjectDataVirtual(this Type typeToMock)
+		{
+			var getObjectDataMethod = typeToMock.GetInterfaceMap(typeof(ISerializable)).TargetMethods[0];
+			return !getObjectDataMethod.IsPrivate && getObjectDataMethod.IsVirtual && !getObjectDataMethod.IsFinal;
+		}
 
-        private static bool ContainsDeserializationConstructor(this Type typeToMock)
-        {
-            return typeToMock.GetConstructor(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                null,
-                new[] { typeof(SerializationInfo), typeof(StreamingContext) },
-                null) != null;
-        }
+		private static bool ContainsDeserializationConstructor(this Type typeToMock)
+		{
+			return typeToMock.GetConstructor(
+				BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+				null,
+				new[] { typeof(SerializationInfo), typeof(StreamingContext) },
+				null) != null;
+		}
 
-        public static bool CanOverride(this MethodBase method)
-        {
-            return method.IsVirtual && !method.IsFinal && !method.IsPrivate;
-        }
+		public static bool CanOverride(this MethodBase method)
+		{
+			return method.IsVirtual && !method.IsFinal && !method.IsPrivate;
+		}
 
-        public static bool CanOverrideGet(this PropertyInfo property)
-        {
-            if (property.CanRead)
-            {
-                var getter = property.GetGetMethod(true);
-                return getter != null && getter.CanOverride();
-            }
+		public static bool CanOverrideGet(this PropertyInfo property)
+		{
+			if (property.CanRead)
+			{
+				var getter = property.GetGetMethod(true);
+				return getter != null && getter.CanOverride();
+			}
 
-            return false;
-        }
+			return false;
+		}
 
-        public static bool CanOverrideSet(this PropertyInfo property)
-        {
-            if (property.CanWrite)
-            {
-                var setter = property.GetSetMethod(true);
-                return setter != null && setter.CanOverride();
-            }
+		public static bool CanOverrideSet(this PropertyInfo property)
+		{
+			if (property.CanWrite)
+			{
+				var setter = property.GetSetMethod(true);
+				return setter != null && setter.CanOverride();
+			}
 
-            return false;
-        }
+			return false;
+		}
 
-        public static EventInfo GetEvent<TMock>(this Action<TMock> eventExpression, TMock mock)
-            where TMock : class
-        {
-            Guard.NotNull(() => eventExpression, eventExpression);
+		public static EventInfo GetEvent<TMock>(this Action<TMock> eventExpression, TMock mock)
+			where TMock : class
+		{
+			Guard.NotNull(() => eventExpression, eventExpression);
 
-            MethodBase addRemove = null;
-            using (var context = new FluentMockContext())
-            {
-                eventExpression(mock);
+			MethodBase addRemove = null;
+			using (var context = new FluentMockContext())
+			{
+				eventExpression(mock);
 
-                if (context.LastInvocation == null)
-                {
-                    throw new ArgumentException("Expression is not an event attach or detach, or the event is declared in a class but not marked virtual.");
-                }
+				if (context.LastInvocation == null)
+				{
+					throw new ArgumentException("Expression is not an event attach or detach, or the event is declared in a class but not marked virtual.");
+				}
 
-                addRemove = context.LastInvocation.Invocation.Method;
-            }
+				addRemove = context.LastInvocation.Invocation.Method;
+			}
 
-            var ev = addRemove.DeclaringType.GetEvent(
-                addRemove.Name.Replace("add_", string.Empty).Replace("remove_", string.Empty));
+			var ev = addRemove.DeclaringType.GetEvent(
+				addRemove.Name.Replace("add_", string.Empty).Replace("remove_", string.Empty));
 
-            if (ev == null)
-            {
-                throw new ArgumentException(string.Format(
-                    CultureInfo.CurrentCulture,
-                    Resources.EventNofFound,
-                    addRemove));
-            }
+			if (ev == null)
+			{
+				throw new ArgumentException(string.Format(
+					CultureInfo.CurrentCulture,
+					Resources.EventNofFound,
+					addRemove));
+			}
 
-            return ev;
-        }
+			return ev;
+		}
 
-        public static bool HasCompatibleParameterList(this Delegate function, ParameterInfo[] expectedParams)
-        {
-            if (HasCompatibleParameterList(expectedParams, function.Method))
-            {
-                // the backing method for the literal delegate is compatible, DynamicInvoke(...) will succeed
-                return true;
-            }
+		public static bool HasCompatibleParameterList(this Delegate function, ParameterInfo[] expectedParams)
+		{
+			if (HasCompatibleParameterList(expectedParams, function.Method))
+			{
+				// the backing method for the literal delegate is compatible, DynamicInvoke(...) will succeed
+				return true;
+			}
 
-            // it's possible for the .Method property (backing method for a delegate) to have
-            // differing parameter types than the actual delegate signature. This occurs in C# when
-            // an instance delegate invocation is created for an extension method (bundled with a receiver)
-            // or at times for DLR code generation paths because the CLR is optimized for instance methods.
-            var invokeMethod = GetInvokeMethodFromUntypedDelegateCallback(function);
-            if (invokeMethod != null && HasCompatibleParameterList(expectedParams, invokeMethod))
-            {
-                // the Invoke(...) method is compatible instead. DynamicInvoke(...) will succeed.
-                return true;
-            }
+			// it's possible for the .Method property (backing method for a delegate) to have
+			// differing parameter types than the actual delegate signature. This occurs in C# when
+			// an instance delegate invocation is created for an extension method (bundled with a receiver)
+			// or at times for DLR code generation paths because the CLR is optimized for instance methods.
+			var invokeMethod = GetInvokeMethodFromUntypedDelegateCallback(function);
+			if (invokeMethod != null && HasCompatibleParameterList(expectedParams, invokeMethod))
+			{
+				// the Invoke(...) method is compatible instead. DynamicInvoke(...) will succeed.
+				return true;
+			}
 
-            // Neither the literal backing field of the delegate was compatible
-            // nor the delegate invoke signature.
-            return false;
-        }
+			// Neither the literal backing field of the delegate was compatible
+			// nor the delegate invoke signature.
+			return false;
+		}
 
-        private static bool HasCompatibleParameterList(ParameterInfo[] expectedParams, MethodInfo method)
-        {
-            var actualParams = method.GetParameters();
-            if (expectedParams.Length != actualParams.Length)
-            {
-                return false;
-            }
+		private static bool HasCompatibleParameterList(ParameterInfo[] expectedParams, MethodInfo method)
+		{
+			var actualParams = method.GetParameters();
+			if (expectedParams.Length != actualParams.Length)
+			{
+				return false;
+			}
 
-            for (int i = 0; i < expectedParams.Length; i++)
-            {
-                if (!actualParams[i].ParameterType.IsAssignableFrom(expectedParams[i].ParameterType))
-                {
-                    return false;
-                }
-            }
+			for (int i = 0; i < expectedParams.Length; i++)
+			{
+				if (!actualParams[i].ParameterType.IsAssignableFrom(expectedParams[i].ParameterType))
+				{
+					return false;
+				}
+			}
 
-            return true;
-        }
+			return true;
+		}
 
-        private static MethodInfo GetInvokeMethodFromUntypedDelegateCallback(Delegate callback)
-        {
-            // Section 8.9.3 of 4th Ed ECMA 335 CLI spec requires delegates to have an 'Invoke' method.
-            // However, there is not a requirement for 'public', or for it to be unambiguous.
-            try
-            {
-                return callback.GetType().GetMethod("Invoke", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            }
-            catch (AmbiguousMatchException)
-            {
-                return null;
-            }
-        }
-    }
+		private static MethodInfo GetInvokeMethodFromUntypedDelegateCallback(Delegate callback)
+		{
+			// Section 8.9.3 of 4th Ed ECMA 335 CLI spec requires delegates to have an 'Invoke' method.
+			// However, there is not a requirement for 'public', or for it to be unambiguous.
+			try
+			{
+				return callback.GetType().GetMethod("Invoke", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+			}
+			catch (AmbiguousMatchException)
+			{
+				return null;
+			}
+		}
+	}
 }
